@@ -1,0 +1,28 @@
+version: "3"
+networks:
+  net:
+  default:
+    external:
+      name: bridge
+services:
+  node1: &node
+    network_mode: bridge
+    image: "golang:1.12.7-stretch"
+    entrypoint:
+      - "ping"
+      - "-i"
+      - "60"
+      - "1.1.1.1"
+    volumes:
+      - .:/export
+  node2: *node
+  node3:
+    networks: [net]
+    image: "golang:1.12.7-stretch"
+    entrypoint:
+      - "ping"
+      - "-i"
+      - "60"
+      - "1.1.1.1"
+    volumes:
+      - .:/export
