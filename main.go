@@ -19,32 +19,34 @@ import (
 )
 
 var (
-	flag         = kingpin.New("bla", "Multicast File Transfer")
-	senderMode   = flag.Flag("sender", "Sender Mode").Bool()
-	receiverMode = flag.Flag("receiver", "Receiver Mode").Bool()
+	senderCmd    = kingpin.Command("sender", "Sender Mode")
+	senderAddr   = senderCmd.Flag("addr", "Target Multicast IP Address").Required().String()
+	receiverCmd  = kingpin.Command("receiver", "Receiver Mode")
+	receiverAddr = receiverCmd.Flag("addr", "Multicast IP address to listen to").Required().String()
+	pipeCmd      = kingpin.Command("pipe", "Test command")
+	debugLog     = kingpin.Flag("debug", "Debug Mode").Bool()
+
+	// flag         = kingpin.New("bla", "Multicast File Transfer")
+	// senderMode   = flag.Flag("sender", "Sender Mode").Bool()
+	// receiverMode = flag.Flag("receiver", "Receiver Mode").Bool()
 	// address      = flag.Flag("addr", "IPv4 Address (Listen IP or Target IP)").Required().String()
-	address  = flag.Flag("addr", "IPv4 Address (Listen IP or Target IP)").Required().String()
-	testPipe = flag.Flag("testpipe", "Pipe Test").Bool()
-	DebugLog = flag.Flag("debug", "Log level").Bool()
 )
 
 func init() {
 	zerolog.SetGlobalLevel(zerolog.InfoLevel)
-	if *DebugLog {
+	if *debugLog {
 		zerolog.SetGlobalLevel(zerolog.DebugLevel)
 	}
 
 	log.Logger = log.With().Caller().Logger().Output(zerolog.ConsoleWriter{Out: os.Stderr})
-	kingpin.MustParse(flag.Parse(os.Args[1:]))
-
-	if !*senderMode && !*receiverMode && !*testPipe {
-		log.Error().Msg("Please choose either sender or receiver mode")
-	}
+	// kingpin.MustParse(flag.Parse(os.Args[1:]))
 }
 
 func main() {
-	if *senderMode {
-		s, err := sender.NewSender(*address)
+	switch kingpin.Parse() {
+	case senderCmd.FullCommand():
+		log.Info().Msg("Running in SENDER mode")
+		s, err := sender.NewSender(*senderAddr)
 		if err != nil {
 			log.Panic().Msg(err.Error())
 		}
@@ -64,63 +66,17 @@ func main() {
 				log.Panic().Msg(err.Error())
 			}
 		}
-
-	} else if *receiverMode {
-		l, err := receiver.NewReceiver(*address)
+	case receiverCmd.FullCommand():
+		log.Info().Msg("Running in RECEIVER mode")
+		l, err := receiver.NewReceiver(*receiverAddr)
 		if err != nil {
 			log.Panic().Msg(err.Error())
 		}
 
 		l.Listen()
-	} else if *testPipe {
-		// err := r.ReadFromStdin()
-		// if err != nil {
-		// 	log.Error().Err(err)
-		// }
-		// r.ReadWithRatelimit(os.Stdout, os.Stdin, 1024*1024)
-
-		// initialSpeed := 20
-
-		// reader := ratelimit.NewReader(os.Stdin)
-		// reader.SetRatelimit(20 * 1024 * 1024)
-
-		// go func() {
-		// 	ticker := time.NewTicker(60 * time.Second)
-
-		// 	for range ticker.C {
-		// 		log.Panic().Msg("Done!")
-		// 		// if initialSpeed <= 10 {
-		// 		// 	break
-		// 		// }
-
-		// 		// reader.UpdateLimit(uint64(initialSpeed * 1024 * 1024))
-
-		// 		// initialSpeed -= 1
-		// 	}
-
-		// 	return
-		// }()
-
-		// for {
-		// 	bytesRead, err := io.Copy(os.Stdout, reader)
-		// 	if err == io.EOF || bytesRead == 0 {
-		// 		log.Info().
-		// 			Str("err", fmt.Sprintf("%+v", err)).
-		// 			Str("bytesRead", strconv.Itoa(int(bytesRead))).
-		// 			Msg("EOF for source")
-		// 		break
-		// 	} else if err != nil {
-		// 		log.Error().Msgf("Error: %+v", err)
-		// 		break
-		// 	}
-		// }
-
-		// r := io.NewReader()
-		// r.CopyWithRatelimit(os.Stdout, os.Stdin, 20<<20)
+	case pipeCmd.FullCommand():
 		io.CopyWithRatelimit(os.Stdout, os.Stdin, 1<<28)
 
 		log.Info().Msg("Done!")
-		return
-
 	}
 }
