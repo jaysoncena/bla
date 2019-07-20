@@ -115,8 +115,9 @@ func main() {
 		// 	}
 		// }
 
-		r := io.NewReader()
-		r.CopyWithRatelimit(os.Stdout, os.Stdin, 20<<20)
+		// r := io.NewReader()
+		// r.CopyWithRatelimit(os.Stdout, os.Stdin, 20<<20)
+		io.CopyWithRatelimit(os.Stdout, os.Stdin, 1<<28)
 
 		log.Info().Msg("Done!")
 		return
